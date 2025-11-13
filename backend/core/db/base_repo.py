@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Boolean, Integer, select, and_, delete
+from warnings import filters
+from sqlalchemy import Column, String, Boolean, Integer, select, and_, delete, update
 
 class BaseRepository:
     def __init__(self, session, model):
@@ -12,7 +13,7 @@ class BaseRepository:
         await self.session.commit()
         await self.session.refresh(new_row)
         return True
-
+    
     async def get(self, conditions: dict = None):
         query = select(self.model)
         if conditions:
@@ -22,21 +23,17 @@ class BaseRepository:
         result = await self.session.execute(query)
         return result.scalars().all()
 
-    async def update(self, sku, name=None, description=None, active=None):
-        result = await self.session.execute(select(self.model).where(self.model.sku == sku))
-        product = result.scalar_one_or_none()
-        if product:
-            if name is not None:
-                product.name = name
-            if description is not None:
-                product.description = description
-            if active is not None:
-                product.active = active
-            await self.session.commit()
-        await self.session.refresh(product)
-        return product
+    async def update(self, filter_conditions: dict, data: dict ):
+        query = (
+            update(self.model)
+            .where(and_(*[getattr(self.model, key) == value for key, value in filter_conditions.items()]))
+            .values(**data)
+        )
+        result = await self.session.execute(query)
+        await self.session.commit()
+        return result.rowcount > 0
 
-    async def delete(self, sku):
+    async def delete(self, sku: str):
         result = await self.session.execute(select(self.model).where(self.model.sku == sku))
         deleted = result.scalar_one_or_none()
         if deleted:

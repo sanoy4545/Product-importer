@@ -5,3 +5,4 @@ class Routes:
     GET_PRODUCT = "/product"
     UPDATE_PRODUCT = "/product/{sku}"
     DELETE_PRODUCT = "/product/{sku}"
+    DELETE_ALL_PRODUCTS = "/products"
