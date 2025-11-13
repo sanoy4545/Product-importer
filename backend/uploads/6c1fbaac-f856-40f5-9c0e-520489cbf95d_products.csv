@@ -1,0 +1,11 @@
+sku,name,description,active
+SKU001,Apple iPhone 15,Latest Apple smartphone with A17 chip,True
+SKU002,Samsung Galaxy S24,Flagship Samsung smartphone with AMOLED display,True
+SKU003,Google Pixel 9,Google’s newest AI-powered smartphone,True
+SKU004,OnePlus 12,High-performance phone with fast charging,True
+SKU005,Xiaomi 14,Affordable flagship with great camera,True
+SKU006,Realme GT 6,Mid-range smartphone with 120Hz display,False
+SKU007,Motorola Edge 50,Stylish phone with clean Android experience,True
+SKU008,Nokia G50,Durable phone with long battery life,True
+SKU009,Asus ROG Phone 8,Gaming smartphone with cooling system,True
+SKU010,Nothing Phone 2,Unique transparent design with Glyph interface,True
