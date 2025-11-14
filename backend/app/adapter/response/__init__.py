@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class CreateProductResponse(BaseModel):
     message: str
@@ -40,3 +40,12 @@ class PageResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+class ProductResponse(BaseModel):
+    id: int
+    sku: str
+    name: str
+    description: str
+    active: bool
+    model_config = ConfigDict(from_attributes=True)
+    

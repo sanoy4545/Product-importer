@@ -13,10 +13,18 @@ class ProductService(ProductUseCase):
         self.repository = BaseRepository(session=db, model=Product)
 
     async def create_product(self, dto: CreateProductDTO) -> bool:
+        skuo_exists = await self.repository.get({"sku": dto.sku})
+        if skuo_exists:
+            raise ValueError("SKU already exists")
         return await self.repository.create(data=dto.model_dump())
 
     async def get_products(self, dto: GetProductsDTO) -> list[Product]:
-        return await self.repository.get_paginated(conditions=dto.model_dump(exclude_unset=True, exclude={"limit", "page"}), page_size=dto.limit, page=dto.page)
+        filter={}
+        if dto.sku: filter['sku']=dto.sku
+        if dto.description: filter['description']=dto.description
+        if dto.active is not None: filter['active']=dto.active
+        if dto.name: filter['name']=dto.name
+        return await self.repository.get_paginated(conditions=filter, page_size=dto.limit, page=dto.page)
 
     async def update_product(self, dto: UpdateProductDTO) -> bool:
         item_exists = await self.repository.get({"sku": dto.sku})
@@ -46,7 +54,7 @@ class WebhookService(WebhookUseCase):
         return await self.repository.create(data=dto.model_dump())
 
     async def get_webhooks(self, dto: GetWebhooksDTO) -> list[Webhook]:
-        return await self.repository.get_paginated(conditions=dto.model_dump(exclude_unset=True, exclude={"limit", "page"}), page_size=dto.limit, page=dto.page)    
+        return await self.repository.get_paginated(conditions={}, page_size=dto.limit, page=dto.page)    
     
     async def update_webhook(self, dto: UpdateWebhookDTO) -> None:
         item_exists = await self.repository.get({"id": dto.id})

@@ -8,7 +8,10 @@ class CreateProductDTO(BaseModel):
     active: bool = True
 
 class GetProductsDTO(BaseModel):
-    filter: Optional[dict] = None
+    sku: str | None = None
+    name: str | None = None
+    description: str | None = None
+    active: bool | None = None
     limit: int = 10
     page: int = 1
 
@@ -27,7 +30,6 @@ class CreateWebhookDTO(BaseModel):
     enabled: Optional[bool] = True
 
 class GetWebhooksDTO(BaseModel):
-    filter: Optional[dict] = None
     limit: int = 10
     page: int = 1
 

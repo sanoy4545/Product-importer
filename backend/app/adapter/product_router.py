@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File
 from app.adapter import Routes
 from app.adapter.request import CreateProductRequest, GetProductsRequest, UpdateProductRequest,DeleteProductRequest
-from app.adapter.response import CreateProductResponse, UpdateProductResponse, DeleteProductResponse, DeleteAllProductsResponse, PageResponse
+from app.adapter.response import CreateProductResponse, UpdateProductResponse, DeleteProductResponse, DeleteAllProductsResponse, PageResponse, ProductResponse
 from fastapi import Depends, HTTPException
 from app.application.services.product_service import ProductService
 from app.application.dto import CreateProductDTO, GetProductsDTO, UpdateProductDTO, DeleteProductDTO
@@ -15,7 +15,13 @@ product_router = APIRouter()
 @product_router.post(Routes.CREATE_PRODUCT,response_model=CreateProductResponse)
 async def create_product_endpoint(request: CreateProductRequest, db : AsyncSession = Depends(get_db)):
     product_use_case= ProductService(db)
-    await product_use_case.create_product(CreateProductDTO(**request.model_dump()))
+    try:
+        await product_use_case.create_product(CreateProductDTO(**request.model_dump()))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        )
     return CreateProductResponse(message="Product created successfully",status=True)
 
 # Get product by SKU
@@ -23,6 +29,7 @@ async def create_product_endpoint(request: CreateProductRequest, db : AsyncSessi
 async def get_product_endpoint(request: GetProductsRequest = Depends(), db=Depends(get_db)):
     product_use_case = ProductService(db)
     product = await product_use_case.get_products(GetProductsDTO(**request.model_dump()))
+    product['items']=[ProductResponse.model_validate(p) for p in product['items']]
     return product
 
 # Update product
@@ -40,7 +47,7 @@ async def update_product_endpoint(request: UpdateProductRequest, db: AsyncSessio
 
 # Delete product
 @product_router.delete(Routes.DELETE_PRODUCT,response_model=DeleteProductResponse)
-async def delete_product_endpoint(request: DeleteProductRequest, db: AsyncSession = Depends(get_db)):
+async def delete_product_endpoint(request: DeleteProductRequest = Depends(), db: AsyncSession = Depends(get_db)):
     product_use_case = ProductService(db)
     try:
         await product_use_case.delete_product(DeleteProductDTO(**request.model_dump()))

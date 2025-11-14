@@ -19,7 +19,23 @@ class BaseRepository:
         query = select(self.model)
         filter_conditions = []
         if conditions:
-            filter_conditions = [getattr(self.model, key) == value for key, value in conditions.items() if hasattr(self.model, key) and value is not None]
+            for key, value in conditions.items():
+                if not hasattr(self.model, key) or value is None:
+                    continue
+                attr = getattr(self.model, key)
+                # Try to detect column type; if it's a String use LIKE/ILIKE
+                try:
+                    col_type = attr.property.columns[0].type
+                except Exception:
+                    col_type = None
+
+                if isinstance(col_type, String):
+                    # if the caller provided '%' patterns, use them as-is; otherwise do prefix match
+                    pattern = value if (isinstance(value, str) and '%' in value) else f"{value}%"
+                    # use case-insensitive match
+                    filter_conditions.append(attr.ilike(pattern))
+                else:
+                    filter_conditions.append(attr == value)
         if filter_conditions:
             query = query.where(and_(*filter_conditions))
         total_result = await self.session.execute(query)
@@ -31,8 +47,22 @@ class BaseRepository:
 
     async def get(self, conditions: dict = None):
         query = select(self.model)
+        filter_conditions = []
         if conditions:
-            filter_conditions = [getattr(self.model, key) == value for key, value in conditions.items() if hasattr(self.model, key) and value is not None]
+            for key, value in conditions.items():
+                if not hasattr(self.model, key) or value is None:
+                    continue
+                attr = getattr(self.model, key)
+                try:
+                    col_type = attr.property.columns[0].type
+                except Exception:
+                    col_type = None
+
+                if isinstance(col_type, String):
+                    pattern = value if (isinstance(value, str) and '%' in value) else f"{value}%"
+                    filter_conditions.append(attr.ilike(pattern))
+                else:
+                    filter_conditions.append(attr == value)
         if filter_conditions:
             query = query.where(and_(*filter_conditions))
         result = await self.session.execute(query)

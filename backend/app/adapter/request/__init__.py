@@ -8,10 +8,10 @@ class CreateProductRequest(BaseModel):
     active: bool = True
 
 class filterproduct(BaseModel):
-    id: int | None = None
-    sku: str | None = None
-    name: str | None = None
-    active: bool | None = None
+    sku: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    active: Optional[bool] = None
 class GetProductsRequest(filterproduct):
     limit: int = 10
     page: int = 1
