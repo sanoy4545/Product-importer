@@ -10,6 +10,12 @@ def process_csv(file_path):
     async def _process():
         async with AsyncSessionLocal() as db:
             df = pd.read_csv(file_path)
+            required_columns = ["sku", "name", "description"]
+            for col in required_columns:
+                if col not in df.columns:
+                    return f"CSV validation error: Missing required column '{col}'"
+            if df[required_columns].isnull().any().any():
+                return "CSV validation error: Missing values in required columns"
             for _, row in df.iterrows():
                 sku = str(row["sku"]).strip().lower()
                 result = await db.execute(

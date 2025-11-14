@@ -10,4 +10,4 @@ celery_app = Celery(
 )
 
 # Enable autodiscovery of tasks in app.workers
-celery_app.autodiscover_tasks(['app.workers'])
+celery_app.autodiscover_tasks(['workers'])

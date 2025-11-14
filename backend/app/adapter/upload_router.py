@@ -16,15 +16,20 @@ async def upload_csv(file: UploadFile = File(...)):
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Invalid file type. Please upload a CSV file.")
 
-    #File handlisng 
     if not os.path.exists(UPLOAD_DIR):
         os.makedirs(UPLOAD_DIR)
     file_id = str(uuid.uuid4())
-    file_path = f"{UPLOAD_DIR}/{file_id}_{file.filename}"
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    file_path = os.path.abspath(f"{UPLOAD_DIR}/{file_id}_{file.filename}")
 
-    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        # Clean up if file was partially written
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+
     task = process_csv.delay(file_path)
     return UploadResponse(task_id=task.id, message="File received, processing started.")
 

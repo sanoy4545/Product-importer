@@ -1,10 +1,10 @@
 from fastapi import APIRouter, UploadFile, File
 from app.adapter import Routes
-from app.adapter.request import CreateProductRequest, UpdateProductRequest,DeleteProductRequest
-from app.adapter.response import CreateProductResponse, UpdateProductResponse, DeleteProductResponse, DeleteAllProductsResponse
+from app.adapter.request import CreateProductRequest, GetProductsRequest, UpdateProductRequest,DeleteProductRequest
+from app.adapter.response import CreateProductResponse, UpdateProductResponse, DeleteProductResponse, DeleteAllProductsResponse, PageResponse
 from fastapi import Depends, HTTPException
 from app.application.services.product_service import ProductService
-from app.application.dto import CreateProductDTO, UpdateProductDTO, DeleteProductDTO
+from app.application.dto import CreateProductDTO, GetProductsDTO, UpdateProductDTO, DeleteProductDTO
 from app.application.exceptions import ProductNotFoundException
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.db.session import get_db
@@ -19,12 +19,11 @@ async def create_product_endpoint(request: CreateProductRequest, db : AsyncSessi
     return CreateProductResponse(message="Product created successfully",status=True)
 
 # Get product by SKU
-'''@product_router.get(Routes.GET_PRODUCT)
-async def get_product_endpoint(filters: dict = None, db=Depends(get_db)):
-    product = await get_products(db, filters)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return product'''
+@product_router.get(Routes.GET_PRODUCT,response_model=PageResponse)
+async def get_product_endpoint(request: GetProductsRequest = Depends(), db=Depends(get_db)):
+    product_use_case = ProductService(db)
+    product = await product_use_case.get_products(GetProductsDTO(**request.model_dump()))
+    return product
 
 # Update product
 @product_router.put(Routes.UPDATE_PRODUCT, response_model=UpdateProductResponse)

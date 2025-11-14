@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.adapter import product_router, upload_router
+from app.adapter import product_router, upload_router, webhook_router
 import app.domain.entities.product_entity
 from core.db.session import engine, Base
 
@@ -22,3 +22,4 @@ app.add_middleware(
 
 app.include_router(product_router.product_router, prefix="/products", tags=["Products"])
 app.include_router(upload_router.upload_router, prefix="/upload", tags=["Upload"])
+app.include_router(webhook_router.webhook_router, prefix="/webhooks", tags=["Webhooks"])

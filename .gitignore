@@ -4,3 +4,5 @@ dist/
 /
 .vscode/
 __pycache__/
+uploads/
+*.pyc
