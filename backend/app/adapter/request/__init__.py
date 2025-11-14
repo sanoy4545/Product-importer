@@ -41,9 +41,9 @@ class GetWebhooksRequest(filterhook):
 
 class UpdateWebhookRequest(BaseModel):
     id: int
-    url: str | None = None
-    event_type: str | None = None
-    enabled: bool | None = None
+    url: Optional[str] = None
+    event_type: Optional[str] = None
+    enabled: Optional[bool] = None
 
 class DeleteWebhookRequest(BaseModel):
     id: int 

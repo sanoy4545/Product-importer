@@ -26,27 +26,43 @@ export function WebhooksTab({ uploadStatus, setUploadStatus }: WebhooksTabProps)
     setUploadStatus(`Testing webhook: ${webhook.url}...`)
     const result = await testWebhook(webhook)
     setUploadStatus(result)
+    showToast(result, result.includes('successful') ? 'success' : 'error')
     setTimeout(() => setUploadStatus(''), 3000)
   }
 
   const handleEditWebhook = (webhook: Webhook) => {
-    setEditingWebhook(webhook)
+    // Ensure eventType is set correctly
+    setEditingWebhook({
+      ...webhook,
+      eventType: webhook.eventType
+    })
     setShowWebhookModal(true)
   }
 
   const handleSaveWebhook = (webhook: Webhook) => {
     const isEdit = !!webhook.id
-    saveWebhook(webhook)
-    showToast(
-      isEdit ? 'Webhook updated successfully' : 'Webhook created successfully',
-      'success'
-    )
+    if (!webhook.eventType) {
+      showToast('Please select an event type.', 'error')
+      return
+    }
+    saveWebhook(webhook).then((result) => {
+      if (result.status) {
+        showToast(result.message || (isEdit ? 'Webhook updated successfully' : 'Webhook created successfully'), 'success')
+      } else {
+        showToast(result.message || 'Failed to save webhook', 'error')
+      }
+    })
   }
 
   const handleDeleteWebhook = (id: string) => {
     if (window.confirm('Are you sure you want to delete this webhook?')) {
-      deleteWebhook(id)
-      showToast('Webhook deleted successfully', 'success')
+      deleteWebhook(id).then((success) => {
+        if (success) {
+          showToast('Webhook deleted successfully', 'success')
+        } else {
+          showToast('Failed to delete webhook', 'error')
+        }
+      })
     }
   }
 
@@ -91,7 +107,9 @@ export function WebhooksTab({ uploadStatus, setUploadStatus }: WebhooksTabProps)
                 value={editingWebhook.eventType}
                 onChange={(e) => setEditingWebhook({ ...editingWebhook, eventType: e.target.value })}
                 className="w-full px-3 py-3 border border-[#646cff] rounded-md text-base bg-[#242424] text-white box-border"
+                required
               >
+                <option value="" disabled>Select event type</option>
                 <option value="product.created">Product Created</option>
                 <option value="product.updated">Product Updated</option>
                 <option value="product.deleted">Product Deleted</option>
@@ -141,7 +159,7 @@ export function WebhooksTab({ uploadStatus, setUploadStatus }: WebhooksTabProps)
             {webhooks.map((webhook) => (
               <tr key={webhook.id} className="hover:bg-[rgba(100,108,255,0.1)]">
                 <td className="p-4 border-b border-[rgba(100,108,255,0.2)]">{webhook.url}</td>
-                <td className="p-4 border-b border-[rgba(100,108,255,0.2)]">{webhook.eventType}</td>
+                <td className="p-4 border-b border-[rgba(100,108,255,0.2)]">{webhook.eventType || ''}</td>
                 <td className="p-4 border-b border-[rgba(100,108,255,0.2)]">
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-semibold ${

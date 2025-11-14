@@ -48,4 +48,11 @@ class ProductResponse(BaseModel):
     description: str
     active: bool
     model_config = ConfigDict(from_attributes=True)
+
+class WebhookResponse(BaseModel):
+    id: int
+    url: str
+    event_type: str
+    enabled: bool
+    model_config = ConfigDict(from_attributes=True)
     

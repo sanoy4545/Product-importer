@@ -4,7 +4,7 @@ from app.application.exceptions import WebhookNotFoundException
 from core.db.session import get_db
 from app.adapter import WebhookRoutes
 from app.adapter.request import  CreateWebhookRequest, UpdateWebhookRequest, DeleteWebhookRequest, EnableWebhookRequest, GetWebhooksRequest, TestWebhookRequest
-from app.adapter.response import WebhookCreationResponse, WebhookEditResponse, WebhookDeletionResponse, EnableWebhookResponse, PageResponse
+from app.adapter.response import WebhookCreationResponse, WebhookEditResponse, WebhookDeletionResponse, EnableWebhookResponse, PageResponse, WebhookResponse
 from app.application.dto import CreateWebhookDTO, UpdateWebhookDTO, DeleteWebhookDTO, EnableWebhookDTO, GetWebhooksDTO, TestWebhookDTO
 from app.application.services.product_service import WebhookService
 import time
@@ -16,6 +16,9 @@ async def add_webhook(request: CreateWebhookRequest, db: AsyncSession = Depends(
     try:
         web_hook_use_case = WebhookService(db)
         await web_hook_use_case.create_webhook(CreateWebhookDTO(**request.model_dump()))
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     return WebhookCreationResponse(success=True, message="Webhook added successfully")  # Replace id=1 with actual created webhook ID
@@ -37,7 +40,7 @@ async def edit_webhook(request: UpdateWebhookRequest, db: AsyncSession = Depends
 
 
 @webhook_router.delete(WebhookRoutes.DELETE_WEBHOOK,response_model=WebhookDeletionResponse)
-async def delete_webhook(request: DeleteWebhookRequest, db: AsyncSession = Depends(get_db)):
+async def delete_webhook(request: DeleteWebhookRequest = Depends(), db: AsyncSession = Depends(get_db)):
     try:
         web_hook_use_case = WebhookService(db)
         await web_hook_use_case.delete_webhook(DeleteWebhookDTO(**request.model_dump()))
@@ -55,6 +58,7 @@ async def delete_webhook(request: DeleteWebhookRequest, db: AsyncSession = Depen
 async def list_webhooks(request: GetWebhooksRequest = Depends(), db: AsyncSession = Depends(get_db)):
     webhook_use_case = WebhookService(db)
     webhooks = await webhook_use_case.get_webhooks(GetWebhooksDTO(**request.model_dump()))
+    webhooks['items'] = [WebhookResponse.model_validate(w) for w in webhooks['items']]
     return webhooks
 
 
