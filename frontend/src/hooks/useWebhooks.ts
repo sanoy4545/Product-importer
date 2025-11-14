@@ -35,7 +35,9 @@ export function useWebhooks() {
   const saveWebhook = async (webhook: Webhook) => {
     try {
       if (webhook.id) {
-        await API.put(`/webhooks/update_webhook/${webhook.id}`, webhook)
+        const { eventType, ...rest } = webhook;
+        const payload = { ...rest, event_type: eventType };
+        await API.put(`/webhooks/update_webhook/${webhook.id}`, payload)
       } else {
         // Remove id and map eventType to event_type for backend
         const { id, eventType, ...rest } = webhook;
