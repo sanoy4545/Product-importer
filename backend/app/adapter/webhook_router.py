@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.exceptions import WebhookNotFoundException
 from core.db.session import get_db
+from fastapi import Body
 from app.adapter import WebhookRoutes
-from app.adapter.request import  CreateWebhookRequest, UpdateWebhookRequest, DeleteWebhookRequest, EnableWebhookRequest, GetWebhooksRequest, TestWebhookRequest
-from app.adapter.response import WebhookCreationResponse, WebhookEditResponse, WebhookDeletionResponse, EnableWebhookResponse, PageResponse, WebhookResponse
+from app.adapter.request import  CreateWebhookRequest, UpdateWebhookRequest, DeleteWebhookRequest, EnableWebhookRequest, GetWebhooksRequest
+from app.adapter.response import TestWebhookResponse, WebhookCreationResponse, WebhookEditResponse, WebhookDeletionResponse, EnableWebhookResponse, PageResponse, WebhookResponse
 from app.application.dto import CreateWebhookDTO, UpdateWebhookDTO, DeleteWebhookDTO, EnableWebhookDTO, GetWebhooksDTO, TestWebhookDTO
 from app.application.services.product_service import WebhookService
 import time
@@ -76,11 +77,11 @@ async def enable_webhook(request: EnableWebhookRequest, db: AsyncSession = Depen
         raise HTTPException(status_code=400, detail=str(e))
     return EnableWebhookResponse(message=f"Webhook {'enabled' if request.enabled else 'disabled'} successfully", success=True)
 
-@webhook_router.post(WebhookRoutes.TEST_WEBHOOK)
-async def test_webhook(request: TestWebhookRequest, db: AsyncSession = Depends(get_db)):
+@webhook_router.post(WebhookRoutes.TEST_WEBHOOK,response_model=TestWebhookResponse)
+async def test_webhook(id: int,body: dict= Body(None), db: AsyncSession = Depends(get_db)):
     webhook_use_case = WebhookService(db)
     try:
-        result = await webhook_use_case.test_webhook(TestWebhookDTO(**request.model_dump()))
+        result = await webhook_use_case.test_webhook(TestWebhookDTO(body=body, id=id))
         return result
     except WebhookNotFoundException as exc:
         raise HTTPException(

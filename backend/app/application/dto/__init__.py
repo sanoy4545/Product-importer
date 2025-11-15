@@ -51,4 +51,5 @@ class EnableWebhookDTO(BaseModel):
 
 class TestWebhookDTO(BaseModel):
     id: int
+    body: Optional[dict] = None
    

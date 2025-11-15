@@ -1,6 +1,8 @@
+
 import type { Webhook } from '../types'
 import { useWebhooks } from '../hooks/useWebhooks'
 import { useToastContext } from '../contexts/ToastContext'
+import { useState } from 'react'
 
 interface WebhooksTabProps {
   uploadStatus: string
@@ -22,12 +24,33 @@ export function WebhooksTab({ uploadStatus, setUploadStatus }: WebhooksTabProps)
 
   const { showToast } = useToastContext()
 
-  const handleTestWebhook = async (webhook: Webhook) => {
-    setUploadStatus(`Testing webhook: ${webhook.url}...`)
-    const result = await testWebhook(webhook)
+  // State for test modal
+  const [showTestModal, setShowTestModal] = useState(false)
+  const [testJsonBody, setTestJsonBody] = useState<string>('{}')
+  const [testWebhookTarget, setTestWebhookTarget] = useState<Webhook | null>(null)
+
+  const handleTestWebhook = (webhook: Webhook) => {
+    setTestWebhookTarget(webhook)
+    setTestJsonBody('{}')
+    setShowTestModal(true)
+  }
+
+  const handleSendTestWebhook = async () => {
+    if (!testWebhookTarget) return
+    setUploadStatus(`Testing webhook: ${testWebhookTarget.url}...`)
+    let jsonBody: any = {}
+    try {
+      jsonBody = JSON.parse(testJsonBody)
+    } catch {
+      showToast('Invalid JSON body', 'error')
+      return
+    }
+    const result = await testWebhook(testWebhookTarget, jsonBody)
     setUploadStatus(result)
     showToast(result, result.includes('successful') ? 'success' : 'error')
     setTimeout(() => setUploadStatus(''), 3000)
+    setShowTestModal(false)
+    setTestWebhookTarget(null)
   }
 
   const handleEditWebhook = (webhook: Webhook) => {
@@ -68,6 +91,36 @@ export function WebhooksTab({ uploadStatus, setUploadStatus }: WebhooksTabProps)
 
   return (
     <div className="p-4">
+      {/* Test Webhook Modal */}
+      {showTestModal && (
+        <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-[1000]" onClick={() => setShowTestModal(false)}>
+          <div className="bg-[#1a1a1a] p-8 rounded-xl max-w-[500px] w-[90%] border-2 border-[#646cff]" onClick={e => e.stopPropagation()}>
+            <h3 className="mt-0 mb-6 text-[#646cff] text-2xl">Test Webhook</h3>
+            <label className="block mb-2 font-semibold text-gray-300">JSON Body to Send</label>
+            <textarea
+              value={testJsonBody}
+              onChange={e => setTestJsonBody(e.target.value)}
+              rows={8}
+              className="w-full px-3 py-3 border border-[#646cff] rounded-md text-base bg-[#242424] text-white box-border mb-6"
+              placeholder='{"key": "value"}'
+            />
+            <div className="flex gap-4 justify-end mt-8">
+              <button
+                onClick={handleSendTestWebhook}
+                className="px-6 py-3 bg-[#646cff] text-white border-none rounded-lg cursor-pointer text-base transition-colors duration-300 hover:bg-[#535bf2]"
+              >
+                Send Test
+              </button>
+              <button
+                onClick={() => setShowTestModal(false)}
+                className="px-6 py-3 bg-gray-500 text-white border-none rounded-lg cursor-pointer text-base"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <h2 className="m-0 text-3xl">Webhook Configuration</h2>
         <button

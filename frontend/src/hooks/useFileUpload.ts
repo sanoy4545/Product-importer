@@ -40,27 +40,26 @@ export function useFileUpload() {
     const pollProgress = async (taskId: string) => {
       try {
         const progressRes = await axios.get(`${import.meta.env.VITE_API_URL}/upload/progress/${taskId}`)
-        const { status, progress, result, meta } = progressRes.data
-        // Always use top-level progress field
-        const percent = typeof progress === 'number' ? progress : 0
-        // Debug log to verify value
-        console.log('Progress value:', percent, 'Raw:', progressRes.data)
-        // Defensive: if percent is an object, extract value
-        let safePercent = percent
-        if (typeof percent === 'object' && percent !== null && 'progress' in percent) {
-          safePercent = percent.progress || 0
+        const { status, progress, result, } = progressRes.data
+        // Robustly extract progress value
+        let safePercent = 0;
+        if (typeof progress === 'object' && progress !== null && 'progress' in progress) {
+          safePercent = progress.progress || 0;
+        } else if (typeof progress === 'number') {
+          safePercent = progress;
         }
-        setUploadProgress(Number(safePercent))
+        console.log('Safe Progress value:', safePercent, 'Raw:', progressRes.data);
+        setUploadProgress(Number(safePercent));
         if (status === 'PENDING') {
           setUploadStatus('Pending...')
         } else if (status === 'PROGRESS') {
-          if (percent < 30) {
+          if (safePercent < 30) {
             setUploadStatus('Parsing CSV...')
-          } else if (percent < 60) {
+          } else if (safePercent < 60) {
             setUploadStatus('Validating...')
-          } else if (percent < 90) {
+          } else if (safePercent < 90) {
             setUploadStatus('Importing products...')
-          } else if (percent < 100) {
+          } else if (safePercent < 100) {
             setUploadStatus('Finalizing...')
           }
         } else if (status === 'SUCCESS') {
@@ -75,7 +74,7 @@ export function useFileUpload() {
         } else {
           setUploadStatus(`Status: ${status}`)
         }
-        if (percent < 100 && status !== 'FAILURE') {
+        if (safePercent < 100 && status !== 'FAILURE') {
           setTimeout(() => pollProgress(taskId), 1000)
         }
       } catch {

@@ -35,6 +35,10 @@ class WebhookDeletionResponse(WebhookCreationResponse):
 class EnableWebhookResponse(WebhookCreationResponse):
     pass
 
+class TestWebhookResponse(BaseModel):
+    response_code: int
+    response_time: float
+
 class PageResponse(BaseModel):
     items: list
     total: int

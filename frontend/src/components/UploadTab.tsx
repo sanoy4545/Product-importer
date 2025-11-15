@@ -64,7 +64,7 @@ export function UploadTab({
         )}
       </div>
       <p className="mt-4 text-gray-500 text-sm">
-        Upload a CSV file with up to 500,000 products. Duplicate SKUs will be overwritten.
+        Upload a CSV file. Duplicate SKUs will be overwritten.
       </p>
     </div>
   )

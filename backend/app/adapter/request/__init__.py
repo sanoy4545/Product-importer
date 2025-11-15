@@ -51,6 +51,3 @@ class DeleteWebhookRequest(BaseModel):
 class EnableWebhookRequest(BaseModel):
     id: int
     enabled: bool
-
-class TestWebhookRequest(BaseModel):
-    id: int

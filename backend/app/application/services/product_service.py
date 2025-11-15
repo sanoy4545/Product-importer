@@ -75,12 +75,15 @@ class WebhookService(WebhookUseCase):
         return await self.repository.update(filter_conditions={"id": dto.id}, data=dto.model_dump(exclude_unset=True, exclude={"id"}))
     
     async def test_webhook(self, dto: TestWebhookDTO) -> dict:
-        webhook=(await self.repository.get({"id": dto.id}))
+        webhook=await self.repository.get({"id": dto.id})
         if not webhook:
             raise WebhookNotFoundException()
         start= time()
         async with httpx.AsyncClient() as client:
-            response = await client.post(webhook.url, json={"test": True})
+            if dto.body:
+                response = await client.post(webhook[0].url, json=dto.body)
+            else:
+                response = await client.post(webhook[0].url)
         elapsed = time() - start
         # Optionally update last_response_code and last_response_time
         await self.repository.update({"id": dto.id}, {"last_response_code": response.status_code, "last_response_time": elapsed})

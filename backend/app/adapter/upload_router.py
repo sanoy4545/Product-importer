@@ -42,19 +42,31 @@ async def get_progress(task_id: str):
     task = celery_app.AsyncResult(task_id)
 
     if task.state == "PENDING":
-        return {"status": "PENDING", "progress": 0}
+        return {"status": "PENDING", "progress": 0, "result": None}
 
     if task.state == "PROGRESS":
+        percent = task.info.get("percent", 0)
         return {
             "status": "PROGRESS",
-            "progress": task.info.get("percent"),
-            "details": task.info
+            "progress": percent,
+            "result": None
         }
 
+    # SUCCESS
+    if task.state == "SUCCESS":
+        # task.result may contain dict → convert to readable string
+        result_message = task.result if isinstance(task.result, str) else "CSV import completed"
+        return {
+            "status": "SUCCESS",
+            "progress": 100,
+            "result": result_message,   # <-- FIX
+        }
+
+    # FAILURE
     return {
-        "status": task.state,
-        "progress": 100 if task.state == "SUCCESS" else None,
-        "result": task.result
+        "status": "FAILURE",
+        "progress": None,
+        "result": str(task.result)
     }
 
 

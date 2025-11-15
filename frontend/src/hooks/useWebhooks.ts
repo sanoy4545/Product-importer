@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import type { Webhook } from '../types';
@@ -69,14 +68,21 @@ export function useWebhooks() {
     }
   }
 
-  const testWebhook = async (webhook: Webhook): Promise<string> => {
-    try {
-      const response = await API.post(`/webhooks/test`, { id: webhook.id })
-      return response.data.message || 'Webhook test successful!'
-    } catch (error) {
-      return 'Webhook test failed.'
+    const testWebhook = async (webhook: Webhook, body?: any): Promise<string> => {
+      try {
+        const response = await API.post(`/webhooks/webhooks/${webhook.id}/test`, body)
+        if (response.data.message) {
+          return response.data.message
+        }
+        // If backend returns response_code and response_time
+        if ('response_code' in response.data && 'response_time' in response.data) {
+          return `Webhook test: code ${response.data.response_code}, time ${Number(response.data.response_time).toFixed(2)}s`
+        }
+        return 'Webhook test successful!'
+      } catch (error) {
+        return 'Webhook test failed.'
+      }
     }
-  }
 
   return {
     webhooks,
