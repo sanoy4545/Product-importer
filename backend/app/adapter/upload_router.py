@@ -37,6 +37,24 @@ async def upload_csv(file: UploadFile = File(...)):
 @upload_router.get(Routes.PROGRESS)
 async def get_progress(task_id: str):
     from workers.celery_app import celery_app
+    if not task_id:
+        raise HTTPException(status_code=400, detail="task_id must not be empty.")
     task = celery_app.AsyncResult(task_id)
-    return ProgressResponse(task_id=task_id, status=task.status, result=task.result)
+
+    if task.state == "PENDING":
+        return {"status": "PENDING", "progress": 0}
+
+    if task.state == "PROGRESS":
+        return {
+            "status": "PROGRESS",
+            "progress": task.info.get("percent"),
+            "details": task.info
+        }
+
+    return {
+        "status": task.state,
+        "progress": 100 if task.state == "SUCCESS" else None,
+        "result": task.result
+    }
+
 

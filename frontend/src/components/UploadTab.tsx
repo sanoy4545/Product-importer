@@ -1,3 +1,5 @@
+import React, { useRef, useEffect } from 'react'
+
 interface UploadTabProps {
   uploadProgress: number
   uploadStatus: string
@@ -11,6 +13,15 @@ export function UploadTab({
   isUploading,
   onFileUpload,
 }: UploadTabProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Reset file input after upload completes (when not uploading)
+  useEffect(() => {
+    if (!isUploading && fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }, [isUploading])
+
   return (
     <div className="text-center p-12 bg-[rgba(100,108,255,0.05)] rounded-xl border-2 border-dashed border-[#646cff]">
       <h2 className="text-3xl mb-4">Upload Product CSV</h2>
@@ -22,6 +33,7 @@ export function UploadTab({
           onChange={onFileUpload}
           disabled={isUploading}
           className="hidden"
+          ref={fileInputRef}
         />
         <label
           htmlFor="file-upload"
