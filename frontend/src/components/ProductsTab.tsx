@@ -291,7 +291,11 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
           Page {currentPage} of {totalPagesCount}
         </span>
         <button
-          onClick={() => nextPage(totalPagesCount)}
+          onClick={async () => {
+            const next = currentPage + 1;
+            await fetchFilteredProducts({ ...filters, page: next });
+            nextPage(totalPagesCount);
+          }}
           disabled={currentPage >= totalPagesCount}
           className={`px-6 py-3 border-none rounded-lg cursor-pointer ${
             currentPage >= totalPagesCount

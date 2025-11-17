@@ -9,6 +9,7 @@ export function useProducts() {
       name?: string;
       description?: string;
       active?: string;
+      page?: number;
     }) => {
       try {
         // Build params, omitting 'active' if it's empty or 'all status'
@@ -19,6 +20,9 @@ export function useProducts() {
         };
         if (filters.active && filters.active !== '') {
           params.active = filters.active;
+        }
+        if (typeof filters.page === 'number') {
+          params.page = filters.page;
         }
         const response = await API.get('/products/product', { params })
         setProducts(response.data.items)

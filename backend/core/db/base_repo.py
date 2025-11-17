@@ -30,14 +30,15 @@ class BaseRepository:
                     col_type = None
 
                 if isinstance(col_type, String):
-                    # if the caller provided '%' patterns, use them as-is; otherwise do prefix match
                     pattern = value if (isinstance(value, str) and '%' in value) else f"{value}%"
-                    # use case-insensitive match
                     filter_conditions.append(attr.ilike(pattern))
                 else:
                     filter_conditions.append(attr == value)
         if filter_conditions:
             query = query.where(and_(*filter_conditions))
+        # Order by SKU ascending
+        if hasattr(self.model, 'sku'):
+            query = query.order_by(getattr(self.model, 'sku').asc())
         total_result = await self.session.execute(query)
         total_count = len(total_result.scalars().all())
         query = query.offset((page - 1) * page_size).limit(page_size)

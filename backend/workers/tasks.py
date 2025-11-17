@@ -5,8 +5,12 @@ from core.db.sync_session import SessionLocal
 from workers.celery_app import celery_app
 from sqlalchemy import select
 
-@celery_app.task
-def process_csv(file_path):
+def safe_update_state(task, **kwargs):
+    if getattr(task, 'request', None) and getattr(task.request, 'id', None):
+        task.update_state(**kwargs)
+
+@celery_app.task(bind=True)
+def process_csv(self, file_path):
     import logging
     db = None
     try:
@@ -27,15 +31,14 @@ def process_csv(file_path):
                 result.description = row.description
             else:
                 db.add(Product(sku=sku, name=row.name, description=row.description))
-            # Update progress percentage
             percent = int((idx / total) * 100) if total else 100
-            process_csv.update_state(state='PROGRESS', meta={'progress': percent})
+            safe_update_state(self, state='PROGRESS', meta={'progress': percent})
         db.commit()
-        process_csv.update_state(state='SUCCESS', meta={'progress': 100, 'result': 'CSV import completed'})
+        safe_update_state(self, state='SUCCESS', meta={'progress': 100, 'result': 'CSV import completed'})
         return "CSV import completed"
     except Exception as e:
         logging.error(f"Error in process_csv: {e}", exc_info=True)
-        process_csv.update_state(state='FAILURE', meta={'progress': 0, 'result': str(e)})
+        safe_update_state(self, state='FAILURE', meta={'progress': 0, 'result': str(e)})
         return f"CSV import failed: {str(e)}"
     finally:
         if db is not None:
