@@ -9,12 +9,16 @@ interface ProductsTabProps {
   setUploadStatus: (status: string) => void
 }
 
+interface SaveResult {
+  status: boolean
+  message?: string
+}
+
 export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps) {
   const {
     products,
     editingProduct,
     setEditingProduct,
-    createProduct,
     saveProduct,
     deleteProduct,
     bulkDelete,
@@ -25,16 +29,15 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
   const [currentPage, setCurrentPage] = useState(1)
   const { showToast } = useToastContext()
 
-  // Fetch products when currentPage or filters change
   useEffect(() => {
     fetchFilteredProducts({ ...filters, page: currentPage })
   }, [currentPage, filters])
 
-  // No local pagination, just use products from backend
   const paginatedProducts = products
 
   const handleBulkDelete = async () => {
-    if (await bulkDelete()) {
+    const success = await bulkDelete()
+    if (success) {
       showToast('All products deleted successfully', 'success')
       setUploadStatus('All products deleted successfully')
       setTimeout(() => setUploadStatus(''), 3000)
@@ -46,52 +49,59 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
       showToast('SKU and Name are required', 'error')
       return
     }
+
     const isEdit = !!product.id
+
     try {
-      const result = await saveProduct(product)
-      if (result && result.status) {
-        showToast(result.message || (isEdit ? 'Product updated successfully' : 'Product created successfully'), 'success')
+      // Ensure saveProduct returns SaveResult
+      const result = await saveProduct(product) as SaveResult
+
+      if (result && typeof result === 'object' && 'status' in result) {
+        if (result.status) {
+          showToast(
+            result.message || (isEdit ? 'Product updated successfully' : 'Product created successfully'),
+            'success'
+          )
+        } else {
+          showToast(result.message || 'Failed to save product', 'error')
+        }
       } else {
-        showToast(result && result.message ? result.message : 'Failed to save product', 'error')
+        showToast('Failed to save product', 'error')
       }
     } catch (error: any) {
-      let message = 'Failed to save product';
-      if (error && error.message) message = error.message;
-      showToast(message, 'error');
+      const message = error?.message || 'Failed to save product'
+      showToast(message, 'error')
     }
   }
 
   const handleDeleteProduct = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      // Find product by id to get SKU
-      const product = products.find((p) => p.id === id)
-      if (!product) {
-        showToast('Product not found', 'error')
-        return
-      }
-      const success = await deleteProduct(product.sku)
-      if (success) {
-        showToast('Product deleted successfully', 'success')
-      } else {
-        showToast('Failed to delete product', 'error')
-      }
+    if (!window.confirm('Are you sure you want to delete this product?')) return
+
+    const product = products.find((p) => p.id === id)
+    if (!product) {
+      showToast('Product not found', 'error')
+      return
     }
+
+    const success = await deleteProduct(product.sku)
+    showToast(success ? 'Product deleted successfully' : 'Failed to delete product', success ? 'success' : 'error')
   }
 
   return (
     <div className="p-4">
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <h2 className="m-0 text-3xl">Product Management</h2>
         <div className="flex gap-4">
           <button
             onClick={() => setEditingProduct({ id: '', sku: '', name: '', description: '', active: true })}
-            className="px-6 py-3 bg-[#646cff] text-white border-none rounded-lg cursor-pointer text-base transition-colors duration-300 hover:bg-[#535bf2]"
+            className="px-6 py-3 bg-[#646cff] text-white rounded-lg hover:bg-[#535bf2]"
           >
             Add Product
           </button>
           <button
             onClick={handleBulkDelete}
-            className="px-6 py-3 bg-[#f44336] text-white border-none rounded-lg cursor-pointer text-base transition-colors duration-300 hover:bg-[#d32f2f]"
+            className="px-6 py-3 bg-[#f44336] text-white rounded-lg hover:bg-[#d32f2f]"
           >
             Delete All Products
           </button>
@@ -109,8 +119,9 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
             setFilters(newFilters)
             await fetchFilteredProducts(newFilters)
           }}
-          className="px-3 py-3 border border-[#646cff] rounded-md text-base flex-1 min-w-[150px] bg-[#1a1a1a] text-white"
+          className="px-3 py-3 border border-[#646cff] rounded-md bg-[#1a1a1a] text-white"
         />
+
         <input
           type="text"
           placeholder="Filter by Name"
@@ -120,8 +131,9 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
             setFilters(newFilters)
             await fetchFilteredProducts(newFilters)
           }}
-          className="px-3 py-3 border border-[#646cff] rounded-md text-base flex-1 min-w-[150px] bg-[#1a1a1a] text-white"
+          className="px-3 py-3 border border-[#646cff] rounded-md bg-[#1a1a1a] text-white"
         />
+
         <input
           type="text"
           placeholder="Filter by Description"
@@ -131,8 +143,9 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
             setFilters(newFilters)
             await fetchFilteredProducts(newFilters)
           }}
-          className="px-3 py-3 border border-[#646cff] rounded-md text-base flex-1 min-w-[150px] bg-[#1a1a1a] text-white"
+          className="px-3 py-3 border border-[#646cff] rounded-md bg-[#1a1a1a] text-white"
         />
+
         <select
           value={filters.active}
           onChange={async (e) => {
@@ -140,7 +153,7 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
             setFilters(newFilters)
             await fetchFilteredProducts(newFilters)
           }}
-          className="px-3 py-3 border border-[#646cff] rounded-md text-base flex-1 min-w-[150px] bg-[#1a1a1a] text-white cursor-pointer"
+          className="px-3 py-3 border border-[#646cff] rounded-md bg-[#1a1a1a] text-white cursor-pointer"
         >
           <option value="">All Status</option>
           <option value="true">Active</option>
@@ -148,7 +161,7 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
         </select>
       </div>
 
-      {/* Product Modal */}
+      {/* Modal */}
       {editingProduct && (
         <div
           className="fixed inset-0 bg-black/70 flex justify-center items-center z-[1000]"
@@ -158,60 +171,65 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
             className="bg-[#1a1a1a] p-8 rounded-xl max-w-[500px] w-[90%] border-2 border-[#646cff]"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="mt-0 mb-6 text-[#646cff] text-2xl">
+            <h3 className="text-[#646cff] text-2xl mb-6">
               {editingProduct.id ? 'Edit Product' : 'Create Product'}
             </h3>
+
             <div className="mb-6">
-              <label className="block mb-2 font-semibold text-gray-300">SKU</label>
-                <input
-                  type="text"
-                  value={editingProduct.sku}
-                  onChange={(e) => setEditingProduct({ ...editingProduct, sku: e.target.value })}
-                  className="w-full px-3 py-3 border border-[#646cff] rounded-md text-base bg-[#242424] text-white box-border"
-                  disabled={!!editingProduct.id}
-                />
+              <label className="block mb-2 text-gray-300">SKU</label>
+              <input
+                type="text"
+                value={editingProduct.sku}
+                onChange={(e) => setEditingProduct({ ...editingProduct, sku: e.target.value })}
+                className="w-full px-3 py-3 border border-[#646cff] bg-[#242424] text-white rounded-md"
+                disabled={!!editingProduct.id}
+              />
               {editingProduct.id && (
                 <p className="mt-2 text-sm text-gray-400">SKU cannot be edited for existing products.</p>
               )}
             </div>
+
             <div className="mb-6">
-              <label className="block mb-2 font-semibold text-gray-300">Name</label>
+              <label className="block mb-2 text-gray-300">Name</label>
               <input
                 type="text"
                 value={editingProduct.name}
                 onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                className="w-full px-3 py-3 border border-[#646cff] rounded-md text-base bg-[#242424] text-white box-border"
+                className="w-full px-3 py-3 border border-[#646cff] bg-[#242424] text-white rounded-md"
               />
             </div>
+
             <div className="mb-6">
-              <label className="block mb-2 font-semibold text-gray-300">Description</label>
+              <label className="block mb-2 text-gray-300">Description</label>
               <textarea
                 value={editingProduct.description}
                 onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
-                className="w-full px-3 py-3 border border-[#646cff] rounded-md text-base bg-[#242424] text-white box-border min-h-[100px] resize-y"
+                className="w-full px-3 py-3 border border-[#646cff] bg-[#242424] text-white rounded-md min-h-[100px]"
               />
             </div>
+
             <div className="mb-6">
-              <label className="block font-semibold text-gray-300">
+              <label className="text-gray-300">
                 <input
                   type="checkbox"
                   checked={editingProduct.active}
                   onChange={(e) => setEditingProduct({ ...editingProduct, active: e.target.checked })}
-                  className="mr-2 w-auto"
+                  className="mr-2"
                 />
                 Active
               </label>
             </div>
-            <div className="flex gap-4 justify-end mt-8">
+
+            <div className="flex gap-4 justify-end">
               <button
                 onClick={() => handleSaveProduct(editingProduct)}
-                className="px-6 py-3 bg-[#646cff] text-white border-none rounded-lg cursor-pointer text-base transition-colors duration-300 hover:bg-[#535bf2]"
+                className="px-6 py-3 bg-[#646cff] text-white rounded-lg hover:bg-[#535bf2]"
               >
                 Save
               </button>
               <button
                 onClick={() => setEditingProduct(null)}
-                className="px-6 py-3 bg-gray-500 text-white border-none rounded-lg cursor-pointer text-base"
+                className="px-6 py-3 bg-gray-500 text-white rounded-lg"
               >
                 Cancel
               </button>
@@ -220,27 +238,27 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
         </div>
       )}
 
-      {/* Products Table */}
+      {/* Table */}
       <div className="overflow-x-auto mb-8 border border-[#646cff] rounded-lg">
-        <table className="w-full border-collapse bg-[#1a1a1a]">
+        <table className="w-full bg-[#1a1a1a]">
           <thead>
             <tr>
-              <th className="bg-[#646cff] text-white p-4 text-left font-semibold">SKU</th>
-              <th className="bg-[#646cff] text-white p-4 text-left font-semibold">Name</th>
-              <th className="bg-[#646cff] text-white p-4 text-left font-semibold">Description</th>
-              <th className="bg-[#646cff] text-white p-4 text-left font-semibold">Status</th>
-              <th className="bg-[#646cff] text-white p-4 text-left font-semibold">Actions</th>
+              <th className="bg-[#646cff] text-white p-4 text-left">SKU</th>
+              <th className="bg-[#646cff] text-white p-4 text-left">Name</th>
+              <th className="bg-[#646cff] text-white p-4 text-left">Description</th>
+              <th className="bg-[#646cff] text-white p-4 text-left">Status</th>
+              <th className="bg-[#646cff] text-white p-4 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
             {paginatedProducts.map((product) => (
               <tr key={product.id} className="hover:bg-[rgba(100,108,255,0.1)]">
-                <td className="p-4 border-b border-[rgba(100,108,255,0.2)]">{product.sku}</td>
-                <td className="p-4 border-b border-[rgba(100,108,255,0.2)]">{product.name}</td>
-                <td className="p-4 border-b border-[rgba(100,108,255,0.2)]">{product.description}</td>
-                <td className="p-4 border-b border-[rgba(100,108,255,0.2)]">
+                <td className="p-4 border-b">{product.sku}</td>
+                <td className="p-4 border-b">{product.name}</td>
+                <td className="p-4 border-b">{product.description}</td>
+                <td className="p-4 border-b">
                   <span
-                    className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    className={`px-3 py-1 rounded-full text-sm ${
                       product.active
                         ? 'bg-[rgba(76,175,80,0.2)] text-[#4caf50]'
                         : 'bg-[rgba(244,67,54,0.2)] text-[#f44336]'
@@ -249,28 +267,18 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
                     {product.active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
-                <td className="p-4 border-b border-[rgba(100,108,255,0.2)]">
+                <td className="p-4 border-b">
                   <button
                     onClick={() => setEditingProduct(product)}
-                    className="p-2 mx-1 bg-[#646cff] text-white border-none rounded-md cursor-pointer inline-flex items-center justify-center w-8 h-8 transition-colors duration-300 hover:bg-[#535bf2]"
-                    title="Edit"
+                    className="p-2 mx-1 bg-[#646cff] text-white rounded-md hover:bg-[#535bf2]"
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                      <path d="M18.5 2.5a2.11 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
+                    Edit
                   </button>
                   <button
                     onClick={() => handleDeleteProduct(product.id)}
-                    className="p-2 mx-1 bg-[#f44336] text-white border-none rounded-md cursor-pointer inline-flex items-center justify-center w-8 h-8 transition-colors duration-300 hover:bg-[#d32f2f]"
-                    title="Delete"
+                    className="p-2 mx-1 bg-[#f44336] text-white rounded-md hover:bg-[#d32f2f]"
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      <line x1="10" y1="11" x2="10" y2="17"></line>
-                      <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
+                    Delete
                   </button>
                 </td>
               </tr>
@@ -280,27 +288,25 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
       </div>
 
       {/* Pagination */}
-      <div className="flex justify-center items-center gap-4 mt-8">
+      <div className="flex justify-center gap-4 mt-8">
         <button
-          onClick={() => setCurrentPage(currentPage - 1)}
+          onClick={() => setCurrentPage((p) => p - 1)}
           disabled={currentPage === 1}
-          className={`px-6 py-3 border-none rounded-lg cursor-pointer ${
-            currentPage === 1
-              ? 'opacity-50 cursor-not-allowed bg-gray-600'
-              : 'bg-[#646cff] text-white hover:bg-[#535bf2]'
+          className={`px-6 py-3 rounded-lg ${
+            currentPage === 1 ? 'bg-gray-600 cursor-not-allowed' : 'bg-[#646cff] text-white hover:bg-[#535bf2]'
           }`}
         >
           Previous
         </button>
-        <span className="font-semibold">
-          Page {currentPage}
-        </span>
+
+        <span className="font-semibold">Page {currentPage}</span>
+
         <button
-          onClick={() => setCurrentPage(currentPage + 1)}
+          onClick={() => setCurrentPage((p) => p + 1)}
           disabled={paginatedProducts.length < 10}
-          className={`px-6 py-3 border-none rounded-lg cursor-pointer ${
+          className={`px-6 py-3 rounded-lg ${
             paginatedProducts.length < 10
-              ? 'opacity-50 cursor-not-allowed bg-gray-600'
+              ? 'bg-gray-600 cursor-not-allowed'
               : 'bg-[#646cff] text-white hover:bg-[#535bf2]'
           }`}
         >
@@ -316,4 +322,3 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
     </div>
   )
 }
-

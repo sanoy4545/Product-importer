@@ -73,22 +73,52 @@ export function useProducts() {
     }
   }
 
-  const saveProduct = async (product: Product): Promise<boolean> => {
+  interface SaveResult {
+    status: boolean;
+    message?: string;
+  }
+
+  const saveProduct = async (product: Product): Promise<SaveResult> => {
     try {
       let response;
       if (product.id) {
         response = await API.put(`/products/product/${product.sku}`, product)
         await fetchProducts()
         setEditingProduct(null)
-        return response.data
+        // Defensive: ensure response.data is SaveResult
+        if (response.data && typeof response.data === 'object' && 'status' in response.data) {
+          return {
+            status: !!response.data.status,
+            message: response.data.message || undefined,
+          }
+        } else {
+          return { status: false, message: 'Unknown error' }
+        }
       } else {
         const created = await createProduct(product)
         setEditingProduct(null)
-        return created
+        if (created && typeof created === 'object' && 'status' in created) {
+          return {
+            status: !!created.status,
+            message: created.message || undefined,
+          }
+        } else {
+          return { status: false, message: 'Unknown error' }
+        }
       }
-    } catch (error) {
-      console.error('Save product error:', error)
-      return false
+    } catch (error: any) {
+      let message = 'Save product error';
+      if (error.response && error.response.data) {
+        if (typeof error.response.data === 'string') {
+          message = error.response.data;
+        } else if (error.response.data.detail) {
+          message = typeof error.response.data.detail === 'string'
+            ? error.response.data.detail
+            : (error.response.data.detail.message || JSON.stringify(error.response.data.detail));
+        }
+      }
+      console.error('Save product error:', message);
+      return { status: false, message };
     }
   }
 
