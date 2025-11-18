@@ -1,30 +1,64 @@
-# Product (monorepo)
+# Product Importer Monorepo
 
-This workspace contains two folders:
+This project is a monorepo for a product management and import system, featuring:
 
-- `backend/` — Node + Express API
-- `frontend/` — Vite + React frontend
+- **backend/** — FastAPI, Celery, SQLAlchemy, PostgreSQL
+- **frontend/** — Vite + React (TypeScript)
 
-Getting started
+## Features
 
-1. Open two terminals.
+- Product CRUD (create, read, update, delete)
+- CSV product import with progress tracking (Celery background task)
+- Webhook management and testing
+- Filtering, pagination, and status toggling
+- Modern UI with modals, tables, and toast notifications
 
-Backend:
+## Getting Started
 
-    cd backend
-    npm install
-    npm run dev    # or npm start
+### Backend (FastAPI)
 
-Frontend:
+1. Make sure Redis is running locally (default port 6379):
+   - On Linux/macOS: `redis-server`
+   - On Windows: use [Memurai](https://www.memurai.com/) or [Redis for Windows](https://github.com/microsoftarchive/redis/releases)
 
-    cd frontend
-    npm install
-    npm run dev
+2. Open a terminal and navigate to the backend folder:
+   ```sh
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   uvicorn main:app --reload
+   # For Celery worker (in a separate terminal):
+   celery -A backend.workers.celery_app worker --loglevel=info --pool=solo
+   ```
 
-If the backend runs on a different port than the frontend (e.g., backend on 3001), either enable CORS on the backend or configure a dev proxy in Vite to forward `/api` requests to the backend.
+### Frontend (React)
 
-Next suggestions
+1. Open another terminal and navigate to the frontend folder:
+   ```sh
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+### Configuration
+
+- Set environment variables in `backend/.env` and `frontend/.env` as needed (API URLs, DB connection, etc).
+- If backend and frontend run on different ports, enable CORS in FastAPI or set up a proxy in `frontend/vite.config.js`.
+
+## Development Tips
+
+- Use two terminals: one for FastAPI, one for Celery worker.
+- For local development, ensure PostgreSQL and Redis are running.
+- Backend uses async SQLAlchemy and Pydantic for models/schemas.
+- Frontend uses React hooks for API calls, state, and UI logic.
+
+## Suggestions
 
 - Add CORS middleware to backend for easier local dev
-- Add a small proxy in `frontend/vite.config.js` if you prefer same-origin requests
-- Add ESLint / Prettier and CI if you plan to expand the project
+- Add a proxy in `frontend/vite.config.js` for same-origin requests
+- Add ESLint, Prettier, and CI for code quality
+
+## License
+
+MIT
