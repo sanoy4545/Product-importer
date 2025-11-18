@@ -1,7 +1,7 @@
 import type { Product } from '../types'
+import { useState, useEffect } from 'react'
 import { useProducts } from '../hooks/useProducts'
 import { useFilters } from '../hooks/useFilters'
-import { usePagination } from '../hooks/usePagination'
 import { useToastContext } from '../contexts/ToastContext'
 
 interface ProductsTabProps {
@@ -22,11 +22,16 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
   } = useProducts()
 
   const { filters, setFilters } = useFilters()
-  const { currentPage, paginate, totalPages, nextPage, prevPage } = usePagination(10)
+  const [currentPage, setCurrentPage] = useState(1)
   const { showToast } = useToastContext()
 
-  const paginatedProducts = paginate(products)
-  const totalPagesCount = totalPages(products.length)
+  // Fetch products when currentPage or filters change
+  useEffect(() => {
+    fetchFilteredProducts({ ...filters, page: currentPage })
+  }, [currentPage, filters])
+
+  // No local pagination, just use products from backend
+  const paginatedProducts = products
 
   const handleBulkDelete = async () => {
     if (await bulkDelete()) {
@@ -277,7 +282,7 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
       {/* Pagination */}
       <div className="flex justify-center items-center gap-4 mt-8">
         <button
-          onClick={prevPage}
+          onClick={() => setCurrentPage(currentPage - 1)}
           disabled={currentPage === 1}
           className={`px-6 py-3 border-none rounded-lg cursor-pointer ${
             currentPage === 1
@@ -288,17 +293,13 @@ export function ProductsTab({ uploadStatus, setUploadStatus }: ProductsTabProps)
           Previous
         </button>
         <span className="font-semibold">
-          Page {currentPage} of {totalPagesCount}
+          Page {currentPage}
         </span>
         <button
-          onClick={async () => {
-            const next = currentPage + 1;
-            await fetchFilteredProducts({ ...filters, page: next });
-            nextPage(totalPagesCount);
-          }}
-          disabled={currentPage >= totalPagesCount}
+          onClick={() => setCurrentPage(currentPage + 1)}
+          disabled={paginatedProducts.length < 10}
           className={`px-6 py-3 border-none rounded-lg cursor-pointer ${
-            currentPage >= totalPagesCount
+            paginatedProducts.length < 10
               ? 'opacity-50 cursor-not-allowed bg-gray-600'
               : 'bg-[#646cff] text-white hover:bg-[#535bf2]'
           }`}
